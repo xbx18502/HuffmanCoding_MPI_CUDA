@@ -2,3 +2,7 @@ TestFiles/
 bin/out*
 bin/test*
 bin/mb*
+
+build/
+bin/
+.cache/
