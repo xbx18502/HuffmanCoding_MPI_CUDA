@@ -41,7 +41,7 @@ install(TARGETS CUDAMPICompress
 set_target_properties(CUDAMPICompress PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    OUTPUT_NAME "CUDAMPICompress"
+    OUTPUT_NAME "CUDAMPI_compress"
 )
 
 # Set include directories

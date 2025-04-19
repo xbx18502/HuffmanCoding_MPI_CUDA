@@ -1,8 +1,15 @@
-TestFiles/
-bin/out*
-bin/test*
-bin/mb*
+/TestFiles/
+/bin/out*
+/bin/test*
+/bin/mb*
 
 build/
-bin/
+/bin/
 .cache/
+
+/data/
+
+*.out
+*.stats
+
+/.vscode/
