@@ -5,6 +5,7 @@
 
 build/
 /bin/
+/.bin/
 .cache/
 
 /data/
