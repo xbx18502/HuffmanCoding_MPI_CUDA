@@ -1,13 +1,13 @@
 # 设置 CMake 最低版本要求
 cmake_minimum_required(VERSION 3.10)
-
+set(CUDAToolkit_ROOT "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6")
+set(CMAKE_CUDA_COMPILER "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6/bin/nvcc")
 # 设置项目名称
 project(CUDAMPICompress CUDA CXX)
 
 # 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 11)
 
-set(CMAKE_CUDA_COMPILER "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6/bin/nvcc")
 set(CMAKE_CUDA_COMPILER_FORCED TRUE)
 
 set(CMAKE_CUDA_ARCHITECTURES 90)
@@ -26,7 +26,6 @@ set(HYDRA_HOME "$NVSHMEM_HOME")
 set(CUDA_HOME "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6")
 set(MPI_HOME "/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/12.6/hpcx/hpcx-2.20/ompi")
 set(NCCL_HOME "/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/nccl")
-set(CUDAToolkit_ROOT "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6")
 
 # 设置目标可执行文件
 add_executable(CUDAMPICompress CUDAMPICompress.cu 

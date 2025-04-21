@@ -20,7 +20,7 @@ unsigned char bitSequenceConstMemory[256][255];
 struct huffmanDictionary huffmanDictionary;
 unsigned int constMemoryFlag = 0;
 
-main(int argc, char* argv[]){
+int main(int argc, char* argv[]){
 	clock_t start, end;
 	int rank, numProcesses;
 	unsigned int cpu_time_used;
