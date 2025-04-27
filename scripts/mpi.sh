@@ -1,5 +1,5 @@
 #!/bin/bash
-#PJM -L rscgrp=b-batch
+#PJM -L rscgrp=a-batch
 #PJM -L node=1
 #PJM -L elapse=00:03:00
 #PJM -j

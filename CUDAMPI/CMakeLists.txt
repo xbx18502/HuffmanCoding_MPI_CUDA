@@ -34,7 +34,7 @@ add_executable(CUDAMPICompress CUDAMPICompress.cu
                 ../include/kernel.cu )
 
 install(TARGETS CUDAMPICompress
-        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/../bin)
+        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 
 # Enable device code linking
 set_target_properties(CUDAMPICompress PROPERTIES
@@ -58,4 +58,5 @@ target_link_directories(CUDAMPICompress PRIVATE
 # Link libraries
 target_link_libraries(CUDAMPICompress PRIVATE
     mpi
+    nvshmem
 )    

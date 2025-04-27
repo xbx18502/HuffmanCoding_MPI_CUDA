@@ -19,7 +19,7 @@ add_executable(MPICompress MPICompress.c
 set_source_files_properties(MPICompress.c ../include/serialFunctions.c PROPERTIES LANGUAGE C)
 
 install(TARGETS MPICompress
-        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/../bin)
+        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 
 
 # Enable device code linking
@@ -53,7 +53,7 @@ add_executable(MPIDecompress MPIDecompress.c
 set_source_files_properties(MPIDecompress.c ../include/serialFunctions.c PROPERTIES LANGUAGE C)
 
 install(TARGETS MPIDecompress
-        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/../bin)
+        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/bin)
 
 
 # Enable device code linking
