@@ -115,15 +115,21 @@ void lauchCUDAHuffmanCompress(unsigned char *inputFileData,
       //       bitSequenceConstMemory,
       //                          256 * 255 * sizeof(unsigned char));
       // 新的代码：
-      unsigned char *d_temp;
-      cudaMalloc((void **)&d_temp, 256 * 255 * sizeof(unsigned char));
-      cudaMemcpy(d_temp, bitSequenceConstMemory,
-                 256 * 255 * sizeof(unsigned char), cudaMemcpyHostToDevice);
-      cudaMemcpyToSymbol(d_bitSequenceGlobalMemory, d_temp,
-                         256 * 255 * sizeof(unsigned char));
-      cudaFree(d_temp);
-      if (error != cudaSuccess)
-        printf("erro_const: %s\n", cudaGetErrorString(error));
+      // unsigned char *d_temp;
+      // cudaMalloc((void **)&d_temp, 256 * 255 * sizeof(unsigned char));
+      // cudaMemcpy(d_temp, bitSequenceConstMemory,
+      //            256 * 255 * sizeof(unsigned char), cudaMemcpyHostToDevice);
+      // cudaMemcpyToSymbol(d_bitSequenceGlobalMemory, d_temp,
+      //                    256 * 255 * sizeof(unsigned char));
+      // cudaFree(d_temp);
+      // if (error != cudaSuccess)
+      //   printf("erro_const: %s\n", cudaGetErrorString(error));
+
+      //new 
+      //   error =
+            cudaMemcpyToSymbol(d_bitSequenceGlobalMemory,
+            bitSequenceConstMemory,
+                               256 * 255 * sizeof(unsigned char));
     }
   }
 

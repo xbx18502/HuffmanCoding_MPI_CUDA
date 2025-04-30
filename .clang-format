@@ -1,0 +1,16 @@
+# 使用基于 LLVM 的样式
+BasedOnStyle: LLVM
+# 将缩进设置为 4 个空格
+IndentWidth: 4
+# 确保 case 标签缩进
+IndentCaseLabels: true
+# 使用空格而不是制表符
+UseTab: Never
+# 连续赋值语句的对齐
+AlignConsecutiveAssignments: true
+# 确保括号对齐风格
+AlignAfterOpenBracket: Align
+# 函数调用的参数对齐
+AlignOperands: true
+# 每行最大字符数 (0表示没有限制)
+ColumnLimit: 100
