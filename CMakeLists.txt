@@ -9,6 +9,7 @@ project(Huffmancoding)
 option(BUILD_CUDAMPI "Build CUDA MPI components" ON)
 
 # 有条件地添加CUDA子目录
-add_subdirectory(CUDAMPI)
+add_subdirectory(CUDAMPINVSHMEM)
 
 add_subdirectory(MPI)
+add_subdirectory(CUDAMPI)

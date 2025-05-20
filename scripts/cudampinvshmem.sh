@@ -46,7 +46,7 @@ $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 -hostfile ${PJM_O_NODEINF} \
 -np 4 \
 --map-by socket --bind-to socket   \
-../bin/CUDAMPI_compress ../data/before_compress/mb512 ../data/after_compress/mb512_comp"
+../bin/CUDAMPINVSHMEM_compress ../data/before_compress/mb512 ../data/after_compress/mb512_comp"
 
 profile_task=" \
 /home/app/nvhpc/24.11/Linux_x86_64/24.11/profilers/Nsight_Systems/bin/nsys profile --mpi-impl=openmpi -t cuda,nvtx -o mpi_init_put_bw_${PJM_JOBID}_${PJM_JOBID}.qdrep \

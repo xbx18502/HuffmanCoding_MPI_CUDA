@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.10)
 set(CUDAToolkit_ROOT "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6")
 set(CMAKE_CUDA_COMPILER "/home/app/nvhpc/24.11/Linux_x86_64/24.11/cuda/12.6/bin/nvcc")
 # 设置项目名称
-project(CUDAMPICompress CUDA CXX)
+project(CUDAMPINVSHMEMCompress CUDA CXX)
 
 # 设置 C++ 标准
 set(CMAKE_CXX_STANDARD 11)
@@ -28,34 +28,35 @@ set(MPI_HOME "/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/12.6/hpcx/hpcx-
 set(NCCL_HOME "/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/nccl")
 
 # 设置目标可执行文件
-add_executable(CUDAMPICompress CUDAMPICompress.cu 
+add_executable(CUDAMPINVSHMEMCompress CUDAMPICompress.cu 
                 ../include/parallelFunctions.cu 
                 ../include/GPUWrapper.cu 
                 ../include/kernel.cu )
 
-install(TARGETS CUDAMPICompress
-        RUNTIME DESTINATION ${CMAKE_SOURCE_DIR}/bin)
+install(TARGETS CUDAMPINVSHMEMCompress
+        RUNTIME DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/../bin)
 
 # Enable device code linking
-set_target_properties(CUDAMPICompress PROPERTIES
+set_target_properties(CUDAMPINVSHMEMCompress PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
     CUDA_RESOLVE_DEVICE_SYMBOLS ON
-    OUTPUT_NAME "CUDAMPI_compress"
+    OUTPUT_NAME "CUDAMPINVSHMEM_compress"
 )
 
 # Set include directories
-target_include_directories(CUDAMPICompress PRIVATE
+target_include_directories(CUDAMPINVSHMEMCompress PRIVATE
     ${NVSHMEM_HOME}/include
     ${MPI_HOME}/include
 )
 
 # Set link directories
-target_link_directories(CUDAMPICompress PRIVATE
+target_link_directories(CUDAMPINVSHMEMCompress PRIVATE
     ${NVSHMEM_HOME}/lib
     ${MPI_HOME}/lib
 )
 
 # Link libraries
-target_link_libraries(CUDAMPICompress PRIVATE
+target_link_libraries(CUDAMPINVSHMEMCompress PRIVATE
     mpi
+    nvshmem
 )    
