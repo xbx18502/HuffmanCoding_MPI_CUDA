@@ -10,6 +10,7 @@
 #include "nvshmem.h"
 #include "nvshmemx.h"
 #include <cstdint>
+#include <cstdio>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -117,11 +118,11 @@ int main(int argc, char* argv[]){
     CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, 1*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
     nvshmem_barrier_all();  
-	printf("h_dest = %ld\n", *h_dest);
+	//printf("h_dest = %ld\n", *h_dest);
 	
 	inputFileLength = *h_dest;
 	
-	printf("inputFileLength = %d\n", inputFileLength);
+	//printf("inputFileLength = %d\n", inputFileLength);
 	/*-----------------------*/
 	// get file chunk siz
 
@@ -213,36 +214,39 @@ int main(int argc, char* argv[]){
 	compBlockLengthArray[rank] = compBlockLength;
 
 	// send the length of each compressed chunk to process 0
-	MPI_Gather(&compBlockLength, 1, MPI_UNSIGNED, compBlockLengthArray, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	//MPI_Gather(&compBlockLength, 1, MPI_UNSIGNED, compBlockLengthArray, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 	/* use nvshmem to gather*/
-	// PE_root = 0;
-	// num_elems = 1;
-	// CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-	// alloc_size = num_elems * 2 * sizeof(int64_t);
+	PE_root = 0;
+	num_elems = 1;
+	CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+	alloc_size = num_elems * (1+numProcesses) * sizeof(int64_t);
 
-    // CUDA_CHECK(cudaHostAlloc(&h_buffer, alloc_size, cudaHostAllocDefault));
-    // h_source = (int64_t *)h_buffer;
-    // h_dest = (int64_t *)&h_source[num_elems];
-	// //h_dest = (int64_t *)compBlockLengthArray;
-    // buffer = (int64_t *)nvshmem_malloc(alloc_size);
-	// *h_buffer = compBlockLength;
-	// d_source = (int64_t *)buffer;
-    // d_dest = (int64_t *)&d_source[num_elems];
-	// // 关键修复点 2: 明确的同步障碍，确保所有进程都就绪
-	// // MPI_Barrier(MPI_COMM_WORLD);
-    // // *h_buffer = inputFileLength;
-    // CUDA_CHECK(cudaMemcpyAsync(d_source, h_source, 1*sizeof(int64_t), cudaMemcpyHostToDevice, stream));                      
-    // CUDA_CHECK(cudaMemcpyAsync(d_dest, h_dest, 1*sizeof(int64_t),cudaMemcpyHostToDevice, stream));
-	// // 关键修复点 3: 确保所有进程都在同一时间点进行广播
-	// CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
-	// // 广播操作
-	// //nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
-	// nvshmem_fcollectmem(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems);
-    // CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, 1*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
-    // CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, 1*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
-    // CUDA_CHECK(cudaStreamSynchronize(stream));
-    // nvshmem_barrier_all();  
-	// compBlockLength = *h_dest;
+    CUDA_CHECK(cudaHostAlloc(&h_buffer, alloc_size, cudaHostAllocDefault));
+    h_source = (int64_t *)h_buffer;
+    h_dest = (int64_t *)&h_source[num_elems];
+	//h_dest = (int64_t *)compBlockLengthArray;
+    buffer = (int64_t *)nvshmem_malloc(alloc_size);
+	*h_source = compBlockLength;
+	d_source = (int64_t *)buffer;
+    d_dest = (int64_t *)&d_source[num_elems];
+	// 关键修复点 2: 明确的同步障碍，确保所有进程都就绪
+	// MPI_Barrier(MPI_COMM_WORLD);
+    // *h_buffer = inputFileLength;
+    CUDA_CHECK(cudaMemcpyAsync(d_source, h_source, num_elems*sizeof(int64_t), cudaMemcpyHostToDevice, stream));                      
+    CUDA_CHECK(cudaMemcpyAsync(d_dest, h_dest, num_elems*numProcesses*sizeof(int64_t),cudaMemcpyHostToDevice, stream));
+	// 关键修复点 3: 确保所有进程都在同一时间点进行广播
+	CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
+	// 广播操作
+	//nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
+	nvshmem_fcollectmem(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems*sizeof(int64_t));
+    CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, num_elems*numProcesses*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
+    CUDA_CHECK(cudaStreamSynchronize(stream));
+    nvshmem_barrier_all();  
+	for(int i=0;i<numProcesses;i++){
+		compBlockLengthArray[i] = h_dest[i];
+		//printf("compBlockLengthArray[%d] = %d\n", i, compBlockLengthArray[i]);
+	}
 	/*-----------------------*/
 	// update the data to reflect offsets
 	if(rank == 0){
@@ -255,43 +259,45 @@ int main(int argc, char* argv[]){
 	}
 
 	// broadcast size of each compressed chunk back to all the processes
-	MPI_Bcast(compBlockLengthArray, numProcesses, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	// MPI_Bcast(compBlockLengthArray, numProcesses, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 	/* use nvshmem to gather*/
-	// h_buffer = (int64_t*)compBlockLengthArray;
-	// PE_root = 0;
-	// num_elems = numProcesses;
-	// CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
-	// alloc_size = num_elems * 2 * sizeof(int64_t);
+	h_buffer = (int64_t*)compBlockLengthArray;
+	PE_root = 0;
+	num_elems = numProcesses;
+	CUDA_CHECK(cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking));
+	alloc_size = num_elems * 2 * sizeof(int64_t);
 
-	// CUDA_CHECK(cudaHostAlloc(&h_buffer, alloc_size, cudaHostAllocDefault));
-	// h_source = (int64_t *)h_buffer;
-	// h_dest = (int64_t *)&h_source[num_elems];
-	// //h_dest = (int64_t *)compBlockLengthArray;
+	CUDA_CHECK(cudaHostAlloc(&h_buffer, alloc_size, cudaHostAllocDefault));
+	h_source = (int64_t *)h_buffer;
+	h_dest = (int64_t *)&h_source[num_elems];
 
-	// // 关键修复点 1: 确保所有进程都初始化h_source和h_dest
-	// if (rank == 0) {
-	// 	*h_source = inputFileLength;  // 只有root进程设置实际的值
-	// } 
-	// buffer = (int64_t *)nvshmem_malloc(alloc_size);
-	// d_source = (int64_t *)buffer;
-	// d_dest = (int64_t *)&d_source[num_elems];
-	// // 关键修复点 2: 明确的同步障碍，确保所有进程都就绪
-	// // MPI_Barrier(MPI_COMM_WORLD);
-	// // *h_buffer = inputFileLength;
-	// CUDA_CHECK(cudaMemcpyAsync(d_source, h_source, num_elems*sizeof(int64_t), cudaMemcpyHostToDevice, stream));                      
-	// CUDA_CHECK(cudaMemcpyAsync(d_dest, h_dest, num_elems*sizeof(int64_t),cudaMemcpyHostToDevice, stream));
-	// // 关键修复点 3: 确保所有进程都在同一时间点进行广播
-	// CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
-	// // 广播操作
-	// //nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
-	// nvshmem_int64_broadcast(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems, PE_root);
-	// CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
-	// CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
-	// CUDA_CHECK(cudaStreamSynchronize(stream));
-	// nvshmem_barrier_all();  
-	// for(int i=0;i<num_elems;i++){
-	// 	compBlockLengthArray[i] = h_dest[i];
-	// }
+	// 关键修复点 1: 确保所有进程都初始化h_source和h_dest
+	if (rank == 0) {
+		for(int i=0;i<numProcesses;i++){
+			h_source[i] = compBlockLengthArray[i];  // 只有root进程设置实际的值
+		}	
+	} 
+	buffer = (int64_t *)nvshmem_malloc(alloc_size);
+	d_source = (int64_t *)buffer;
+	d_dest = (int64_t *)&d_source[num_elems];
+	// 关键修复点 2: 明确的同步障碍，确保所有进程都就绪
+	// MPI_Barrier(MPI_COMM_WORLD);
+	// *h_buffer = inputFileLength;
+	CUDA_CHECK(cudaMemcpyAsync(d_source, h_source, num_elems*sizeof(int64_t), cudaMemcpyHostToDevice, stream));                      
+	CUDA_CHECK(cudaMemcpyAsync(d_dest, h_dest, num_elems*sizeof(int64_t),cudaMemcpyHostToDevice, stream));
+	// 关键修复点 3: 确保所有进程都在同一时间点进行广播
+	CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
+	// 广播操作
+	//nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
+	nvshmem_int64_broadcast(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems, PE_root);
+	CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
+	CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
+	CUDA_CHECK(cudaStreamSynchronize(stream));
+	nvshmem_barrier_all();  
+	for(int i=0;i<num_elems;i++){
+		compBlockLengthArray[i] = h_dest[i];
+		//printf("compBlockLengthArray[%d] = %d\n", i, compBlockLengthArray[i]);
+	}
 	/*-----------------------*/
 	// get time
 	if(rank == 0){
