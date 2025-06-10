@@ -49,18 +49,18 @@ $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 ../bin/CUDAMPI_compress ../data/before_compress/mb512 ../data/after_compress/mb512_comp"
 
 profile_task=" \
-/home/app/nvhpc/24.11/Linux_x86_64/24.11/profilers/Nsight_Systems/bin/nsys profile --mpi-impl=openmpi -t cuda,nvtx -o mpi_init_put_bw_${PJM_JOBID}_${PJM_JOBID}.qdrep \
+/home/app/nvhpc/24.11/Linux_x86_64/24.11/profilers/Nsight_Systems/bin/nsys profile --mpi-impl=openmpi -t cuda,nvtx -o cudampi_${PJM_JOBID}_${PJM_JOBID}.qdrep \
 $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 -x NVSHMEMTEST_USE_MPI_LAUNCHER=1 \
 -hostfile ${PJM_O_NODEINF} \
 -np 4 \
 --map-by socket --bind-to socket   \
-./fcollect.out "
+../bin/CUDAMPI_compress ../data/before_compress/mb512 ../data/after_compress/mb512_comp_mpi "
 
 # echo "MPI_HOME = ${MPI_HOME}"
 for i in {1..1}
 do
     echo "iteration: ${i}"
-    eval ${task_mpi2}
+    eval ${profile_task}
     echo " "
 done

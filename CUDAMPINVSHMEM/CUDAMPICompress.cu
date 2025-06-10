@@ -11,6 +11,7 @@
 #include "nvshmemx.h"
 #include <cstdint>
 #include <cstdio>
+#include <ctime>
 #include<stdio.h>
 #include<stdlib.h>
 #include<string.h>
@@ -40,7 +41,7 @@ struct huffmanDictionary huffmanDictionary;
 unsigned int constMemoryFlag = 0;
 
 int main(int argc, char* argv[]){
-	clock_t start, end;
+	double start, end, compressStart, compressEnd;
 	int rank, numProcesses;
 	unsigned int cpu_time_used;
 	unsigned int i, blockLength;
@@ -141,7 +142,7 @@ int main(int argc, char* argv[]){
 
 	// start clock
 	if(rank == 0){
-		start = clock();
+		start = MPI_Wtime();
 	}
 	
 	// find the frequency of each symbols
@@ -204,10 +205,14 @@ int main(int argc, char* argv[]){
 	
 	// generate data offset array
 	compressedDataOffset = (unsigned int *)malloc((blockLength + 1) * sizeof(unsigned int));
-	
+	if(rank==0){
+		compressStart = MPI_Wtime();
+	}
 	// launch kernel
     lauchCUDAHuffmanCompress(inputFileData, compressedDataOffset, blockLength, numKernelRuns, integerOverflowFlag, mem_req);
-
+	if(rank==0){
+		compressEnd = MPI_Wtime();
+	}	
 	// calculate length of compressed data
 	compBlockLengthArray = (unsigned int *)malloc(numProcesses * sizeof(unsigned int));
 	compBlockLength = mem_offset / 8 + 1024;
@@ -301,9 +306,13 @@ int main(int argc, char* argv[]){
 	/*-----------------------*/
 	// get time
 	if(rank == 0){
-		end = clock();
-		cpu_time_used = ((end - start)) * 1000 / CLOCKS_PER_SEC;
-		printf("Time taken: %d:%d s\n", cpu_time_used / 1000, cpu_time_used % 1000);
+		end = MPI_Wtime();
+		// cpu_time_used = ((end - start)) * 1000 / CLOCKS_PER_SEC;
+		// int toCompressStart = (compressStart - start) * 1000 / CLOCKS_PER_SEC;
+		// int toCompressEnd = (compressEnd - compressStart) * 1000 / CLOCKS_PER_SEC;
+		printf("Time taken: %f s\n", end-start);
+		printf("Time taken to compressStart: %f s\n", compressStart-start);
+		printf("Time taken to compressEnd: %f s\n", compressEnd-start);
 	}
 	
 	// MPI file I/O: write
