@@ -41,7 +41,7 @@ int main(int argc, char* argv[]){
 	// get rank and number of processes value
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 	MPI_Comm_size(MPI_COMM_WORLD, &numProcesses);
-
+	cudaSetDevice(rank);
 	// get file size
 	if(rank == 0){
 		inputFile = fopen(argv[1], "rb");
@@ -68,7 +68,7 @@ int main(int argc, char* argv[]){
 
 	inputFileData = (unsigned char *)malloc(blockLength * sizeof(unsigned char));	
 	MPI_File_read(mpi_inputFile, inputFileData, blockLength, MPI_UNSIGNED_CHAR, &status);
-
+	cudaFree(0); // warm up CUDA
 	// start clock
 	if(rank == 0){
 		start = MPI_Wtime();
@@ -137,8 +137,11 @@ int main(int argc, char* argv[]){
 	if(rank==0){
 		compressStart = MPI_Wtime();
 	}
-	// launch kernel
-    lauchCUDAHuffmanCompress(inputFileData, compressedDataOffset, blockLength, numKernelRuns, integerOverflowFlag, mem_req);
+		// launch kernel
+	lauchCUDAHuffmanCompress(inputFileData, compressedDataOffset, 
+		blockLength, numKernelRuns, integerOverflowFlag, mem_req);
+	
+	
 	if(rank==0){
 		compressEnd = MPI_Wtime();
 	}

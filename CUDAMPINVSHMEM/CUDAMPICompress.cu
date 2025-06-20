@@ -6,6 +6,7 @@
 //#include "device/nvshmem_coll_defines.cuh"
 #include "device_host/nvshmem_types.h"
 #include "host/nvshmem_api.h"
+#include "host/nvshmem_coll_api.h"
 #include "mpi.h"
 #include "nvshmem.h"
 #include "nvshmemx.h"
@@ -209,7 +210,9 @@ int main(int argc, char* argv[]){
 		compressStart = MPI_Wtime();
 	}
 	// launch kernel
-    lauchCUDAHuffmanCompress(inputFileData, compressedDataOffset, blockLength, numKernelRuns, integerOverflowFlag, mem_req);
+	lauchCUDAHuffmanCompress(inputFileData, compressedDataOffset, 
+			blockLength, numKernelRuns, integerOverflowFlag, mem_req);
+	
 	if(rank==0){
 		compressEnd = MPI_Wtime();
 	}	
