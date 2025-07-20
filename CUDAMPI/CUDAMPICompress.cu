@@ -22,6 +22,8 @@ unsigned int constMemoryFlag = 0;
 
 int main(int argc, char* argv[]){
 	double start, end, compressStart, compressEnd;
+	double beforeGather, afterGather;
+	double beforeBcast, afterBcast;
 	int rank, numProcesses;
 	unsigned int cpu_time_used;
 	unsigned int i, blockLength;
@@ -149,10 +151,14 @@ int main(int argc, char* argv[]){
 	compBlockLengthArray = (unsigned int *)malloc(numProcesses * sizeof(unsigned int));
 	compBlockLength = mem_offset / 8 + 1024;
 	compBlockLengthArray[rank] = compBlockLength;
-
+	if(rank==0){
+		beforeGather = MPI_Wtime();
+	}
 	// send the length of each compressed chunk to process 0
 	MPI_Gather(&compBlockLength, 1, MPI_UNSIGNED, compBlockLengthArray, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-
+	if(rank==0){
+		afterGather = MPI_Wtime();
+	}
 	// update the data to reflect offsets
 	if(rank == 0){
 		compBlockLengthArray[0] = (numProcesses + 2) * 4 + compBlockLengthArray[0];
@@ -162,16 +168,24 @@ int main(int argc, char* argv[]){
 			compBlockLengthArray[i] = compBlockLengthArray[i - 1];
 		compBlockLengthArray[0] = (numProcesses + 2) * 4;
 	}
-
+	if(rank==0){
+		beforeBcast = MPI_Wtime();
+	}
 	// broadcast size of each compressed chunk back to all the processes
 	MPI_Bcast(compBlockLengthArray, numProcesses, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-
+	if(rank==0){
+		afterBcast = MPI_Wtime();
+	}
 	// get time
 	if(rank == 0){
 		end = MPI_Wtime();
 		printf("Time taken: %f s\n", end - start);
 		printf("Time taken to compressStart: %f s\n", compressStart - start);
 		printf("Time taken to compressEnd: %f s\n", compressEnd - start);
+		printf("Time taken for gatherStart: %f s\n", beforeGather - start);
+		printf("Time taken for gatherEnd: %f s\n", afterGather - start);
+		printf("Time taken for bcastStart: %f s\n", beforeBcast - start);
+		printf("Time taken for bcastEnd: %f s\n", afterBcast - start);
 	}
 	
 	// MPI file I/O: write

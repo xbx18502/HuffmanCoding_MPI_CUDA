@@ -43,6 +43,8 @@ unsigned int constMemoryFlag = 0;
 
 int main(int argc, char* argv[]){
 	double start, end, compressStart, compressEnd;
+	double beforeFcollect, afterFcollect;
+	double beforeBcast, afterBcast;
 	int rank, numProcesses;
 	unsigned int cpu_time_used;
 	unsigned int i, blockLength;
@@ -220,7 +222,6 @@ int main(int argc, char* argv[]){
 	compBlockLengthArray = (unsigned int *)malloc(numProcesses * sizeof(unsigned int));
 	compBlockLength = mem_offset / 8 + 1024;
 	compBlockLengthArray[rank] = compBlockLength;
-
 	// send the length of each compressed chunk to process 0
 	//MPI_Gather(&compBlockLength, 1, MPI_UNSIGNED, compBlockLengthArray, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 	/* use nvshmem to gather*/
@@ -246,7 +247,17 @@ int main(int argc, char* argv[]){
 	CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
 	// 广播操作
 	//nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
-	nvshmem_fcollectmem(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems*sizeof(int64_t));
+	if(rank==0){
+		beforeFcollect = MPI_Wtime();
+	}
+	for(int i=0;i<1;i++){
+		nvshmem_fcollectmem(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems*sizeof(int64_t));
+	}
+	if(rank==0){
+		afterFcollect = MPI_Wtime();
+		//printf("beforeFcollect = %f, afterFcollect = %f\n", beforeFcollect, afterFcollect);
+		//printf("Time taken for fcollect: %f s\n", afterFcollect - beforeFcollect);
+	}
     CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, num_elems*numProcesses*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
     CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -256,6 +267,7 @@ int main(int argc, char* argv[]){
 		//printf("compBlockLengthArray[%d] = %d\n", i, compBlockLengthArray[i]);
 	}
 	/*-----------------------*/
+	
 	// update the data to reflect offsets
 	if(rank == 0){
 		compBlockLengthArray[0] = (numProcesses + 2) * 4 + compBlockLengthArray[0];
@@ -265,7 +277,6 @@ int main(int argc, char* argv[]){
 			compBlockLengthArray[i] = compBlockLengthArray[i - 1];
 		compBlockLengthArray[0] = (numProcesses + 2) * 4;
 	}
-
 	// broadcast size of each compressed chunk back to all the processes
 	// MPI_Bcast(compBlockLengthArray, numProcesses, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 	/* use nvshmem to gather*/
@@ -297,7 +308,13 @@ int main(int argc, char* argv[]){
 	CUDA_CHECK(cudaStreamSynchronize(stream));  // 这里需要同步，确保复制完成
 	// 广播操作
 	//nvshmem_barrier_all();  // 关键修复点 4: 确保所有进程都准备好执行广播
+	if(rank==0){
+		beforeBcast = MPI_Wtime();
+	}
 	nvshmem_int64_broadcast(NVSHMEM_TEAM_WORLD, d_dest, d_source, num_elems, PE_root);
+	if(rank==0){
+		afterBcast = MPI_Wtime();
+	}
 	CUDA_CHECK(cudaMemcpyAsync(h_source, d_source, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
 	CUDA_CHECK(cudaMemcpyAsync(h_dest,d_dest, num_elems*sizeof(int64_t),cudaMemcpyDeviceToHost, stream));
 	CUDA_CHECK(cudaStreamSynchronize(stream));
@@ -307,6 +324,7 @@ int main(int argc, char* argv[]){
 		//printf("compBlockLengthArray[%d] = %d\n", i, compBlockLengthArray[i]);
 	}
 	/*-----------------------*/
+	
 	// get time
 	if(rank == 0){
 		end = MPI_Wtime();
@@ -316,6 +334,10 @@ int main(int argc, char* argv[]){
 		printf("Time taken: %f s\n", end-start);
 		printf("Time taken to compressStart: %f s\n", compressStart-start);
 		printf("Time taken to compressEnd: %f s\n", compressEnd-start);
+		printf("Time taken for fcollectStart: %f s\n", beforeFcollect - start);
+		printf("Time taken for fcollectEnd: %f s\n", afterFcollect-start);
+		printf("Time taken for bcastStart: %f s\n", beforeBcast - start);
+		printf("Time taken for bcastEnd: %f s\n", afterBcast-start);
 	}
 	
 	// MPI file I/O: write

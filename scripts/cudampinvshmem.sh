@@ -61,7 +61,7 @@ $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 for i in {1..1}
 do
     echo "iteration: ${i}"
-    # eval ${profile_task}
-    eval ${task_mpi2}
+    eval ${profile_task}
+    # eval ${task_mpi2}
     echo " "
 done
