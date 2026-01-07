@@ -1,6 +1,6 @@
 #!/bin/bash
 #PJM -L rscgrp=b-batch
-#PJM -L node=1
+#PJM -L node=2
 #PJM -L elapse=00:03:00
 #PJM -j
 #PJM -S
@@ -23,7 +23,7 @@ export MPI_HOME="/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/12.6/hpcx/hp
 # NCCL settings
 export NCCL_HOME="/home/app/nvhpc/24.11/Linux_x86_64/24.11/comm_libs/nccl"
 
-# export OMPI_MCA_plm_rsh_agent="/usr/bin/pjrsh"
+export OMPI_MCA_plm_rsh_agent="/usr/bin/pjrsh"
 
 export NVSHMEM_BOOTSTRAP=MPI
 
@@ -36,16 +36,16 @@ task_mpi=" \
 $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 -x NVSHMEMTEST_USE_MPI_LAUNCHER=1 \
 -hostfile ${PJM_O_NODEINF} \
--np 4 \
+-np 8 --map-by ppr:4:node \
 --map-by socket:pe=30  --bind-to core \
 ./fcollect.out "
-
+# --map-by socket --bind-to socket 
 task_mpi2=" \
 $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 -x NVSHMEMTEST_USE_MPI_LAUNCHER=1 \
 -hostfile ${PJM_O_NODEINF} \
--np 4 \
---map-by socket --bind-to socket   \
+-np 8 --map-by ppr:4:node \
+--bind-to core   \
 ../bin/CUDAMPINVSHMEM_compress ../data/before_compress/mb512 ../data/after_compress/mb512_comp_nvshmem"
 
 profile_task=" \
@@ -61,7 +61,7 @@ $MPI_HOME/bin/mpirun -v --display-allocation --display-map \
 for i in {1..1}
 do
     echo "iteration: ${i}"
-    eval ${profile_task}
-    # eval ${task_mpi2}
+    # eval ${task_mpi}
+    eval ${task_mpi2}
     echo " "
 done

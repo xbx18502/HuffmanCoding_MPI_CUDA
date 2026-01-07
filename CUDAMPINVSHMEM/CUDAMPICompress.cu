@@ -72,7 +72,15 @@ int main(int argc, char* argv[]){
 	nvshmemx_init_attr(NVSHMEMX_INIT_WITH_MPI_COMM, &attr);
     mype = nvshmem_team_my_pe(NVSHMEMX_TEAM_NODE);
 	int npes  = numProcesses;
-    CUDA_CHECK(cudaSetDevice(mype));
+    // 检查设备数量和有效性
+	int device_count;
+	CUDA_CHECK(cudaGetDeviceCount(&device_count));
+	printf("Rank %d: Found %d GPUs, NVSHMEM suggests GPU %d\n", rank, device_count, mype);
+
+	// 确保设备ID有效
+	int device_id = mype % device_count;  // 安全的设备分配
+	CUDA_CHECK(cudaSetDevice(device_id));
+	printf("Rank %d: Using GPU %d (adjusted from NVSHMEM suggestion %d)\n", rank, device_id, mype);
 	/*----------------------------------*/
 	// get file size
 	if(rank == 0){
